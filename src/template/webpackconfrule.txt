@@ -1,0 +1,126 @@
+[[install]]
+[css]
+style-loader css-loader
+[html]
+html-webpack-plugin html-loader
+[babel]
+babel-loader @babel/core @babel/preset-env
+[sass]
+sass-loader node-sass
+[[header]]
+[common]
+const path = require('path');
+var enabledSourceMap;
+// ソースマップの利用有無(productionのときはソースマップを利用しない)
+if (process.env.NODE_ENV === 'production') {
+    console.log('production');
+    enabledSourceMap = false;
+}else{
+    console.log('develop');
+    enabledSourceMap = true;
+}
+[html]
+var HtmlWebpackPlugin = require('html-webpack-plugin');
+[[rules]]
+[css]
+      // CSSファイルの読み込み
+      {
+        // 対象となるファイルの拡張子
+        test: /\.css/,
+        // ローダー名
+        use: [
+          // linkタグに出力する機能
+          "style-loader",
+          // CSSをバンドルするための機能
+          {
+            loader: "css-loader",
+            options: {
+              // オプションでCSS内のurl()メソッドの取り込みを禁止する
+              url: false,
+              // ソースマップを有効にする
+              sourceMap: enabledSourceMap
+            }
+          }
+        ]
+      }
+[html]
+      {
+        test: /\.html$/,
+        use: [
+          {
+            loader: "html-loader",
+            options: { minimize: true }
+          }
+        ]
+      }
+[babel]
+      {
+        // 拡張子 .js の場合
+        test: /\.js$/,
+        use: [
+          {
+            // Babel を利用する
+            loader: "babel-loader",
+            // Babel のオプションを指定する
+            options: {
+              presets: [
+                // プリセットを指定することで、ES2019 を ES5 に変換
+                "@babel/preset-env"
+              ]
+            }
+          }
+        ]
+      }
+[sass]
+// Sassファイルの読み込みとコンパイル
+      {
+        test: /\.scss/, // 対象となるファイルの拡張子
+        use: [
+          // linkタグに出力する機能
+          "style-loader",
+          // CSSをバンドルするための機能
+          {
+            loader: "css-loader",
+            options: {
+              // オプションでCSS内のurl()メソッドの取り込みを禁止する
+              url: false,
+              // ソースマップの利用有無
+              sourceMap: enabledSourceMap,
+
+              // 0 => no loaders (default);
+              // 1 => postcss-loader;
+              // 2 => postcss-loader, sass-loader
+              importLoaders: 2
+            }
+          },
+          {
+            loader: "sass-loader",
+            options: {
+              // ソースマップの利用有無
+              sourceMap: enabledSourceMap
+            }
+          }
+        ]
+      }
+[[plugins]]
+[html]
+    new HtmlWebPackPlugin({
+      template: "./html/index.html",
+      filename: "./dist/index.html"
+    }),
+[node_app]
+new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
+[[output]]
+[common]
+    //  出力ファイルのディレクトリ名
+    path: path.resolve(__dirname, 'dist'),
+    // 出力ファイル名
+    filename: 'main.js',
+[node_lib_commonJS]
+    libraryTarget: 'commonjs' // See Authoring Libraries(https://webpack.js.org/guides/author-libraries/)
+[[resolve]]
+[common]
+    modules: [
+      'node_modules',
+       path.join(__dirname, 'src'),
+    ],
