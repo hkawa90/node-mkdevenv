@@ -13,10 +13,8 @@ const path = require('path');
 var enabledSourceMap;
 // ソースマップの利用有無(productionのときはソースマップを利用しない)
 if (process.env.NODE_ENV === 'production') {
-    console.log('production');
     enabledSourceMap = false;
 }else{
-    console.log('develop');
     enabledSourceMap = true;
 }
 [html]

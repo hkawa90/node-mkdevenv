@@ -6,15 +6,25 @@ import cmd from 'node-cmd';
 import readline from 'readline';
 import stream from 'stream';
 import commandLineArgs from 'command-line-args';
-//import terminal_kit from 'terminal-kit';
 
-//const term = terminal_kit.terminal;
+import { progressListOnTerm } from './term';
+import { EventEmitter } from 'events';
+
 
 const gitignoreFile = '.gitignore';
 const package_json = 'package.json';
 const node_modules = 'node_modules';
 const defaultPkgMgr = 'npm';
 const webpackConfPath = 'webpack.config.js';
+
+
+var progressState = [{ title: 'Create .gitignore.', state: '-' },
+{ title: 'Initialize package.json.', state: '-' },
+{ title: 'Install core webpack modules.', state: '-' },
+{ title: 'Customize package.json.', state: '-' },
+{ title: 'Install webpack loaders/plugins.', state: '-' },
+{ title: 'Create webpack.config.js.', state: '-' }
+];
 
 const optionDefinitions = [
     {
@@ -73,7 +83,6 @@ const optionDefinitions = [
     }
 ];
 
-
 function isExistFile(file) {
     try {
         fs.statSync(file);
@@ -128,6 +137,9 @@ async function installDevModules(moduleList, pkgMgr) {
         pkgMgr = defaultPkgMgr;
     }
     var m = await isExistModules(moduleList, pkgMgr);
+    if (m.length === 0) {
+        return 'skip';
+    }
     for (var i = 0; i < m.length; i++) {
         modules += m[i] + ' ';
     }
@@ -136,17 +148,24 @@ async function installDevModules(moduleList, pkgMgr) {
             var notInstalled = [];
             cmd.get('npm install ' + modules + ' --save-dev', function (err, data, stderr) {
                 if (err)
-                    reject(err);
-                resolve();
+                    reject('ng');
+                resolve('ok');
             });
         });
     }
 }
 
-function createGitIgnore() {
+function createGitIgnore(reporter) {
     if (!isExistFile(path.join('./', gitignoreFile))) {
-        fs.writeFileSync(path.join('./', gitignoreFile),
-            gitignore.toString('utf8'));
+        try {
+            fs.writeFileSync(path.join('./', gitignoreFile),
+                gitignore.toString('utf8'));
+            reporter.emit('ok', 'Create .gitignore.');
+        } catch (err) {
+            reporter.emit('ng', 'Create .gitignore.');
+        }
+    } else {
+        reporter.emit('skip', 'Create .gitignore.');
     }
 }
 
@@ -155,19 +174,25 @@ function mkDevDir(path) {
         fs.mkdirSync(path);
 }
 
-async function pkgInit(pkgMgr) {
+async function pkgInit(pkgMgr, reporter) {
     if ((pkgMgr === undefined) || (pkgMgr === null) || (pkgMgr === '')) {
         pkgMgr = defaultPkgMgr;
     }
-    if (isExistFile(path.join('./', package_json)))
+    if (isExistFile(path.join('./', package_json))) {
+        reporter.emit('skip', 'Initialize package.json.');
         return;
+    }
     if (pkgMgr === 'npm') {
         return new Promise(function (resolve, reject) {
             var notInstalled = [];
             cmd.get('npm init -y', function (err, data, stderr) {
-                if (err)
+                if (err) {
+                    reporter.emit('ng', 'Initialize package.json.');
                     reject(err);
-                resolve();
+                } else {
+                    reporter.emit('ok', 'Initialize package.json.');
+                    resolve();
+                }
             });
         });
     }
@@ -186,7 +211,7 @@ function mkConfProp(sectionName, option, conf) {
     return buffer;
 }
 
-async function createWebpackConf(option, conf) {
+async function createWebpackConf(option, conf, reporter) {
     var buffer = '';
     var header = '', output = '';
     var rules = '', plugins = '';
@@ -213,33 +238,40 @@ async function createWebpackConf(option, conf) {
     resolve = mkConfProp('resolve', option, conf);
 
     buffer += header + '\n';
-    buffer += 'module.exports = {\n';
-    buffer += 'target:' + option.target + ',\n';
-    buffer += 'mode:' + option.mode + ',\n';
-    buffer += 'entry: "./src/index.js",\n';
+    buffer += 'module.exports = (env, argv) => {\n';
+    buffer += '  const enabledSourceMap = (argv.mode === "production") ? false : true;\n';
+    buffer += '  return {\n';
+    buffer += '    target:' + option.target + ',\n';
+    buffer += '    entry: "./src/index.js",\n';
     if (output !== '') {
-        buffer += 'output: {\n';
-        buffer += output + '\n';
-        buffer += '},\n';
+        buffer += '    output: {\n';
+        buffer += '      ' + output + '\n';
+        buffer += '    },\n';
     }
     if (resolve !== '') {
-        buffer += 'resolve: {\n';
-        buffer += resolve + '\n';
-        buffer += '},\n';
+        buffer += '    resolve: {\n';
+        buffer += '      ' + resolve + '\n';
+        buffer += '    },\n';
     }
     if (rules !== '') {
-        buffer += 'module: {\n';
-        buffer += 'rules: [\n';
-        buffer += rules + '\n';
-        buffer += ']\n';
+        buffer += '    module: {\n';
+        buffer += '    rules: [\n';
+        buffer += '      ' + rules + '\n';
+        buffer += '    ]\n';
     }
     if (plugins !== '') {
-        buffer += 'plugins: {\n';
-        buffer += plugins + '\n';
-        buffer += '},\n';
+        buffer += '    plugins: [\n';
+        buffer += '      ' + plugins + '\n';
+        buffer += '    ],\n';
     }
-    buffer += '};\n';
-    fs.writeFileSync(path.join('./', webpackConfPath), buffer);
+    buffer += '  }\n';
+    buffer += '}\n';
+    try {
+        fs.writeFileSync(path.join('./', webpackConfPath), buffer);
+        reporter.emit('ok', 'Create webpack.config.js.');
+    } catch (err) {
+        reporter.emit('ng', 'Create webpack.config.js.');
+    }
 }
 
 async function readWebpackConf() {
@@ -281,7 +313,6 @@ async function readWebpackConf() {
         });
 
         rl.on('close', function () {
-            console.log(conf);
             resolve(conf);
         });
 
@@ -289,41 +320,92 @@ async function readWebpackConf() {
 }
 
 async function mkDevEnv(option) {
+    // regist event
+    var reporter = new EventEmitter;
+    reporter.on('ok', (title) => {
+        for (var i = 0; i < progressState.length; i++)
+            if (progressState[i].title === title) {
+                progressState[i].state = 'ok';
+                progressListOnTerm(progressState);
+            }
+    });
+    reporter.on('ng', (title) => {
+        for (var i = 0; i < progressState.length; i++)
+            if (progressState[i].title === title) {
+                progressState[i].state = 'ng';
+                progressListOnTerm(progressState);
+            }
+    });
+    reporter.on('skip', (title) => {
+        for (var i = 0; i < progressState.length; i++)
+            if (progressState[i].title === title) {
+                progressState[i].state = 'skip';
+                progressListOnTerm(progressState);
+            }
+    });
+    if (option.node_app) {
+        option.target = 'node';
+    } else if (option.node_lib_commonJS) {
+        option.target = 'node';
+    } else if (option.web) {
+        option.target = 'web';
+    }
     // default
-    createGitIgnore();
-    await pkgInit('npm');
-    // read package.json
-    var packageJson = JSON.parse(
-        fs.readFileSync(path.join('./', package_json), 'utf8'));
+    createGitIgnore(reporter);
+    await pkgInit(option.package_manager, reporter);
     mkDevDir(path.join('./', 'src'));
     mkDevDir(path.join('./', 'dist'));
-    packageJson.files = ["README.md", "LICENSE", "package.json", "dist"];
     if (option.withWebpack) {
         // install webpack
-        var m = ['webpack', 'webpack-cli'];
-        console.log('Install webpack');
-        await installDevModules(m, option.package_manager);
-        createWebpackConf(option);
-        // write package.json
-        packageJson.scripts.build = 'webpack --mode production';
-        packageJson.scripts.build_dev = 'webpack --mode development';
-        writeFileSync(path.join('./', package_json), JSON.stringify(packageJson, null, '  '));
-
-        if (option.node_app) {
-            option.target = 'node';
-        } else if (option.node_lib_commonJS) {
-            option.target = 'node';
-        } else if (option.web) {
-            option.target = 'web';
+        var m;
+        if (option.use_dev_server) {
+            m = ['webpack', 'webpack-cli', 'webpack-dev-server'];
+        } else {
+            m = ['webpack', 'webpack-cli'];
+        }
+        if (!option.no_install) {
+            var ret = await installDevModules(m, option.package_manager);
+            reporter.emit(ret, 'Install core webpack modules.');
+        } else {
+            reporter.emit('skip', 'Install core webpack modules.');
+        }
+        // read package.json
+        try {
+            var packageJson = JSON.parse(
+                fs.readFileSync(path.join('./', package_json), 'utf8'));
+            // write package.json
+            packageJson.scripts.build = 'webpack --mode production';
+            packageJson.scripts.build_dev = 'webpack --mode development';
+            packageJson.files = ["README.md", "LICENSE", "package.json", "dist"];
+            if (option.node_app) {
+                packageJson.bin = {};
+                packageJson.bin[packageJson.name] = './dist/main.js';
+            }
+            if (option.node_lib_commonJS) {
+                packageJson.main = "./dist/main.js";
+            }
+            fs.writeFileSync(path.join('./', package_json), JSON.stringify(packageJson, null, '  '));
+            reporter.emit('ok', 'Customize package.json.');
+        } catch (err) {
+            reporter.emit('ng', 'Customize package.json.');
+        }
+        if (option.web) {
             mkDevDir(path.join('./', 'html'));
             var m = ['babel-loader', '@babel/core', '@babel/preset-env'];
-            await installDevModules(m, option.package_manager);
+            if (!option.no_install) {
+                await installDevModules(m, option.package_manager);
+            }
         }
+        reporter.emit('ok', 'Install webpack loaders/plugins.');
+        // create webpack.config.js
+        var conf = await readWebpackConf();
+        await createWebpackConf(option, conf, reporter);
+    } else {
+        reporter.emit('skip', 'Install core webpack modules.');
+        reporter.emit('skip', 'Customize package.json.');
+        reporter.emit('skip', 'Install webpack loaders/plugins.');
+        reporter.emit('skip', 'Create webpack.config.js.');
     }
-    // create webpack.config.js
-    var conf = await readWebpackConf();
-    console.log(conf);
-    createWebpackConf(option, conf);
 }
 
 async function main_process(options) {
@@ -341,7 +423,6 @@ function printHelp() {
     process.stdout.write('    --css               : make web application environment using css.\n');
     process.stdout.write('    --sass              : make web application environment using sass.\n');
     process.stdout.write('    --images            : make web application environment using images.\n');
-    process.stdout.write('    --images            : make web application environment using images.\n');
     process.stdout.write('    --use_dev_server    : webpack with webpack-dev-server.\n');
     process.stdout.write('    --no_install        : do not install required modules.\n');
     process.stdout.write('    --no_webpack        : do not use webpack.\n');
@@ -356,6 +437,7 @@ try {
     if (options.help) {
         printHelp();
     }
+    progressListOnTerm(progressState);
     main_process(options);
 } catch (err) {
     process.stdout.write(err.toString() + '\n');

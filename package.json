@@ -34,9 +34,11 @@
     "webpack-cli": "^3.3.5"
   },
   "dependencies": {
+    "ansi-escapes": "^4.2.0",
+    "ansi-styles": "^4.0.0",
     "command-line-args": "^5.1.1",
     "node-cmd": "^3.0.0",
-    "readline": "^1.3.0",
-    "terminal-kit": "^1.28.3"
+    "on-change": "^1.5.1",
+    "readline": "^1.3.0"
   }
 }
