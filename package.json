@@ -38,7 +38,6 @@
     "ansi-styles": "^4.0.0",
     "command-line-args": "^5.1.1",
     "node-cmd": "^3.0.0",
-    "on-change": "^1.5.1",
     "readline": "^1.3.0"
   }
 }
