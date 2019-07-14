@@ -10,6 +10,7 @@ sass-loader node-sass
 [[header]]
 [common]
 const path = require('path');
+const webpack = require('webpack');
 var enabledSourceMap;
 // ソースマップの利用有無(productionのときはソースマップを利用しない)
 if (process.env.NODE_ENV === 'production') {
@@ -122,3 +123,6 @@ new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
       'node_modules',
        path.join(__dirname, 'src'),
     ],
+[[node]]
+[node_app]
+      __dirname : false,

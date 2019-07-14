@@ -215,7 +215,7 @@ async function createWebpackConf(option, conf, reporter) {
     var buffer = '';
     var header = '', output = '';
     var rules = '', plugins = '';
-    var resolve = '';
+    var resolve = '', node = '';
     // install require modules
     if (!option.no_install) {
         for (var ins in conf['install']) {
@@ -236,12 +236,14 @@ async function createWebpackConf(option, conf, reporter) {
     output = mkConfProp('output', option, conf);
     // - resolve
     resolve = mkConfProp('resolve', option, conf);
+    // - node
+    node = mkConfProp('node', option, conf);
 
     buffer += header + '\n';
     buffer += 'module.exports = (env, argv) => {\n';
     buffer += '  const enabledSourceMap = (argv.mode === "production") ? false : true;\n';
     buffer += '  return {\n';
-    buffer += '    target:' + option.target + ',\n';
+    buffer += '    target: "' + option.target + '",\n';
     buffer += '    entry: "./src/index.js",\n';
     if (output !== '') {
         buffer += '    output: {\n';
@@ -263,6 +265,11 @@ async function createWebpackConf(option, conf, reporter) {
         buffer += '    plugins: [\n';
         buffer += '      ' + plugins + '\n';
         buffer += '    ],\n';
+    }
+    if (node !== '') {
+        buffer += '    node: {\n';
+        buffer += '      ' + node + '\n';
+        buffer += '    },\n';
     }
     buffer += '  }\n';
     buffer += '}\n';
