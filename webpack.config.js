@@ -22,7 +22,6 @@ module.exports = (env, argv) => {
       ]
     },
     module: {
-      noParse: /terminal-kit/,
       rules: [
         {
           test: /\.txt$/i,

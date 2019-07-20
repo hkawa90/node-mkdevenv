@@ -247,28 +247,28 @@ async function createWebpackConf(option, conf, reporter) {
     buffer += '    entry: "./src/index.js",\n';
     if (output !== '') {
         buffer += '    output: {\n';
-        buffer += '      ' + output + '\n';
+        buffer += output + '\n';
         buffer += '    },\n';
     }
     if (resolve !== '') {
         buffer += '    resolve: {\n';
-        buffer += '      ' + resolve + '\n';
+        buffer += resolve + '\n';
         buffer += '    },\n';
     }
     if (rules !== '') {
         buffer += '    module: {\n';
         buffer += '    rules: [\n';
-        buffer += '      ' + rules + '\n';
+        buffer += rules + '\n';
         buffer += '    ]\n';
     }
     if (plugins !== '') {
         buffer += '    plugins: [\n';
-        buffer += '      ' + plugins + '\n';
+        buffer += plugins + '\n';
         buffer += '    ],\n';
     }
     if (node !== '') {
         buffer += '    node: {\n';
-        buffer += '      ' + node + '\n';
+        buffer += node + '\n';
         buffer += '    },\n';
     }
     buffer += '  }\n';

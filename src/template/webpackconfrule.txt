@@ -12,12 +12,6 @@ sass-loader node-sass
 const path = require('path');
 const webpack = require('webpack');
 var enabledSourceMap;
-// ソースマップの利用有無(productionのときはソースマップを利用しない)
-if (process.env.NODE_ENV === 'production') {
-    enabledSourceMap = false;
-}else{
-    enabledSourceMap = true;
-}
 [html]
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 [[rules]]
@@ -111,18 +105,18 @@ var HtmlWebpackPlugin = require('html-webpack-plugin');
 new webpack.BannerPlugin({ banner: "#!/usr/bin/env node", raw: true }),
 [[output]]
 [common]
-    //  出力ファイルのディレクトリ名
-    path: path.resolve(__dirname, 'dist'),
-    // 出力ファイル名
-    filename: 'main.js',
+      //  出力ファイルのディレクトリ名
+      path: path.resolve(__dirname, 'dist'),
+      // 出力ファイル名
+      filename: 'main.js',
 [node_lib_commonJS]
-    libraryTarget: 'commonjs' // See Authoring Libraries(https://webpack.js.org/guides/author-libraries/)
+      libraryTarget: 'commonjs2', // See Authoring Libraries(https://webpack.js.org/guides/author-libraries/)
 [[resolve]]
 [common]
-    modules: [
-      'node_modules',
-       path.join(__dirname, 'src'),
-    ],
+      modules: [
+        'node_modules',
+        path.join(__dirname, 'src'),
+      ],
 [[node]]
-[node_app]
-      __dirname : false,
+[common]
+      __dirname: false,
